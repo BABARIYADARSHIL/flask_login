@@ -1,51 +1,170 @@
 from flask import Flask, request, jsonify
-from pymongo import MongoClient
-import bcrypt
+from flask_cors import CORS
 import os
+from face_auth import register_user, login_user  # Import from the module
+import cv2
+import time
+from face_auth.utils import upload_to_cloudinary,users_collection
+import face_recognition
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+app = Flask(__name__)
+CORS(app)
 load_dotenv()
 
-app = Flask(__name__)
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-# MongoDB connection
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-client = MongoClient(MONGO_URI)
-db = client['login_app']
-users_collection = db['users']
-
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-
-    if not email or not password:
-        return jsonify({'status': 'error', 'message': 'Email and password required'}), 400
-
-    user = users_collection.find_one({'email': email})
-    if not user:
-        return jsonify({'status': 'error', 'message': 'User not found'}), 404
-
-    if bcrypt.checkpw(password.encode('utf-8'), user['password']):
-        return jsonify({'status': 'success', 'message': 'Login successful'}), 200
-    else:
-        return jsonify({'status': 'error', 'message': 'Invalid password'}), 401
+CLOUDINARY_FOLDER = os.getenv("CLOUDINARY_FOLDER", "face_recognition")
 
 @app.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
+    try:
+        name = request.form.get("name")
+        email = request.form.get("email")
+        mobile = request.form.get("mobile")
+        image_file = request.files.get("image")
 
-    if users_collection.find_one({'email': email}):
-        return jsonify({'status': 'error', 'message': 'Email already exists'}), 409
+        if not name or not email or not mobile:
+            return jsonify({"error": "Name, Email, and Mobile are required"}), 400
 
-    hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    users_collection.insert_one({'email': email, 'password': hashed_pw})
+        image_path = None  # Default value for webcam case
+        if image_file:
+            image_path = os.path.join(app.config["UPLOAD_FOLDER"], image_file.filename)
+            image_file.save(image_path)
 
-    return jsonify({'status': 'success', 'message': 'User registered'}), 201
+        # Pass image_path (even if None)
+        response = register_user(name, email, mobile, image_path)
+
+        return jsonify(response), 201 if "message" in response else 400
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/login', methods=['POST'])
+def login():
+    try:
+        email = request.form.get("email")
+        image_file = request.files.get("image")
+
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+
+        # Check for stored Cloudinary image URL
+        user = users_collection.find_one({"email": email})
+        if user is None:
+            return jsonify({"error": "User not found"}), 404
+
+        cloudinary_url = user.get("image_url")
+
+        # **🚨 If image URL is missing, suggest capture/upload API**
+        if not cloudinary_url:
+            return jsonify({
+                "error": "User image not found. Please capture or upload an image.",
+                "capture_api": "/capture_upload_image"
+            }), 400
+
+        # If image file is uploaded, process it
+        image_path = None
+        if image_file:
+            image_path = os.path.join(app.config["UPLOAD_FOLDER"], f"{email}_login.jpg")
+            image_file.save(image_path)
+
+        response = login_user(email, image_path)
+
+        status_code = 200 if "message" in response else 401
+        return jsonify(response), status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# 🚀 New API: Handle webcam capture or manual upload
+@app.route('/capture_upload_image', methods=['POST'])
+def capture_upload_image():
+    try:
+        email = request.form.get("email")
+        print(email)
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+
+        # Check if user uploaded an image (for mobile users)
+        if "image" in request.files:
+            file = request.files["image"]
+            filename = os.path.join(app.config["UPLOAD_FOLDER"], f"{email}_upload.jpg")
+            file.save(filename)
+            cloudinary_url = upload_to_cloudinary(filename, folder=CLOUDINARY_FOLDER)
+            os.remove(filename)
+        else:
+            # **Webcam Capture Logic**
+            cap = cv2.VideoCapture(0)
+            if not cap.isOpened():
+                return {"error": "Webcam not detected. Please upload an image manually."}
+            face_detected_time = None
+
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    return {"error": "Failed to capture image"}
+
+                # Convert frame to RGB
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                # Detect Face
+                face_locations = face_recognition.face_locations(rgb_frame)
+
+                if len(face_locations) == 0:
+                    face_detected_time = None  # Reset if face not found
+                    cv2.putText(frame, "No face detected!", (50, 50),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                else:
+                    for (top, right, bottom, left) in face_locations:
+                        padding = 30
+                        cv2.rectangle(frame,
+                                      (left - padding, top - padding),
+                                      (right + padding, bottom + padding),
+                                      (0, 255, 0), 2)
+                    if face_detected_time is None:
+                        face_detected_time = time.time()
+
+                    # Calculate how long face has been detected
+                    elapsed = time.time() - face_detected_time
+                    remaining = 3 - int(elapsed)
+
+                    if elapsed >= 3:
+                        break  # Capture image
+
+                    # Show countdown on frame
+                    cv2.putText(frame, f"Hold still... {remaining}", (50, 450),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)
+
+                cv2.imshow("Face Capture - Hold still for 3 seconds", frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    cap.release()
+                    cv2.destroyAllWindows()
+                    return {"error": "Face Capture cancelled by user"}
+
+            cap.release()
+            cv2.destroyAllWindows()
+
+            # Save & Upload Image to Cloudinary
+            filename = os.path.join(app.config["UPLOAD_FOLDER"], f"{email}_capture.jpg")
+            cv2.imwrite(filename, frame)
+            cloudinary_url = upload_to_cloudinary(filename, folder=CLOUDINARY_FOLDER)
+            os.remove(filename)
+
+        if not cloudinary_url:
+            return jsonify({"error": "Image upload failed"}), 500
+
+        # Update user profile with new image URL
+        users_collection.update_one({"email": email}, {"$set": {"image_url": cloudinary_url}})
+
+        return jsonify({ "success": True,"message": "Image captured & uploaded successfully", "image_url": cloudinary_url})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
+
