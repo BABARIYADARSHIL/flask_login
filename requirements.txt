@@ -1,11 +1,9 @@
-pymongo
 python-dotenv
 gunicorn
 Flask
 opencv-python
 pymysql
 flask_cors
-getmac
 pymongo
 getmac
 cloudinary
