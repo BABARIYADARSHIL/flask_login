@@ -1,6 +1,14 @@
-Flask
 pymongo
 python-dotenv
-bcrypt
-dnspython
 gunicorn
+Flask
+opencv-python
+pymysql
+flask_cors
+getmac
+pymongo
+getmac
+cloudinary
+requests
+numpy
+face_recognition
