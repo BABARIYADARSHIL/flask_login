@@ -24,11 +24,12 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install face_recognition and dependencies in one layer
-RUN pip install --no-cache-dir face_recognition opencv-python-headless numpy flask python-dotenv pymongo cloudinary getmac
+# Install Python dependencies
+RUN pip install --no-cache-dir face_recognition opencv-python-headless numpy flask python-dotenv pymongo cloudinary getmac gunicorn
 
 # Copy your app
 COPY . /app
 WORKDIR /app
 
-CMD ["python", "app.py"]
+# Start the app with Gunicorn
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "app:app"]
