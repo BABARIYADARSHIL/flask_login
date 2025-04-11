@@ -8,7 +8,7 @@ load_dotenv()  # This will load the variables from .env into the environment
 def db_connection(db_name=None):
     """Connect to MongoDB database."""
     # Fetch the MongoDB URI from environment variables or use a default
-    mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")  # Default to local if not set
+    mongo_uri = os.getenv("MONGO_URI")  # Default to local if not set
     db_name = db_name or os.getenv("MONGO_DB_NAME", "face_auth_data")  # Fetch from env or use default
 
     client = MongoClient(mongo_uri)
