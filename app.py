@@ -26,13 +26,13 @@ def register():
         mobile = request.form.get("mobile")
         image_file = request.files.get("image")
 
-        if not name or not email or not mobile:
-            return jsonify({"error": "Name, Email, and Mobile are required"}), 400
+        if not name or not email or not mobile or not image_file:
+            return jsonify({"error": "Name, Email, Mobile, and Image are required"}), 400
 
-        image_path = None  # Default value for webcam case
-        if image_file:
-            image_path = os.path.join(app.config["UPLOAD_FOLDER"], image_file.filename)
-            image_file.save(image_path)
+        # image_path = None  # Default value for webcam case
+        # if image_file:
+        image_path = os.path.join(app.config["UPLOAD_FOLDER"], image_file.filename)
+        image_file.save(image_path)
 
         # Pass image_path (even if None)
         response = register_user(name, email, mobile, image_path)
@@ -48,8 +48,8 @@ def login():
         email = request.form.get("email")
         image_file = request.files.get("image")
 
-        if not email:
-            return jsonify({"error": "Email is required"}), 400
+        if not email or not image_file:
+            return jsonify({"error": "Email and image are required"}), 400
 
         # Check for stored Cloudinary image URL
         user = users_collection.find_one({"email": email})
@@ -167,4 +167,4 @@ def capture_upload_image():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
+    # app.run(host='192.168.1.13', port=5000, debug=True)

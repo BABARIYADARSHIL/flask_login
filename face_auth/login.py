@@ -19,23 +19,23 @@ def login_user(email, image_path=None):
             return {"error": "User not found", "Status": "False"}
 
 
-        _id = str(user.get("_id", ""))
-        firstName = user.get("firstName", "")
-        lastName = user.get("lastName", "")
-        companyId = user.get("companyId", "")
-        companyName = user.get("companyName", "")
-        designation = user.get("designation", "")
-        phone = user.get("phone", "")
-        status = user.get("status", "")
-        role = user.get("role", "")
-        isNewUser = user.get("isNewUser", "")
-        token = user.get("token", "")
-        dailyTotalWorkingHour = user.get("dailyTotalWorkingHour", "")
-        weeklyTotalWorkingHour = user.get("weeklyTotalWorkingHour", "")
-        requiresPasswordReset = user.get("requiresPasswordReset", "")
-        empCode = user.get("empCode", "")
-        name = user.get("name", "")
-        mobile = user.get("mobile", "")
+        # _id = str(user.get("_id", ""))
+        # firstName = user.get("firstName", "")
+        # lastName = user.get("lastName", "")
+        # companyId = user.get("companyId", "")
+        # companyName = user.get("companyName", "")
+        # designation = user.get("designation", "")
+        # phone = user.get("phone", "")
+        # status = user.get("status", "")
+        # role = user.get("role", "")
+        # isNewUser = user.get("isNewUser", "")
+        # token = user.get("token", "")
+        # dailyTotalWorkingHour = user.get("dailyTotalWorkingHour", "")
+        # weeklyTotalWorkingHour = user.get("weeklyTotalWorkingHour", "")
+        # requiresPasswordReset = user.get("requiresPasswordReset", "")
+        # empCode = user.get("empCode", "")
+        # name = user.get("name", "")
+        # mobile = user.get("mobile", "")
 
         stored_mac = user["mac_address"]
         cloudinary_url = user.get("image_url")  # Get image URL from Cloudinary
@@ -62,34 +62,34 @@ def login_user(email, image_path=None):
         cloudinary_encoding = cloudinary_encoding[0]  # Get first face encoding
 
         # Set default image path for local storage
-        temp_image_path = f"uploads/{email}_login.jpg"
+        # temp_image_path = f"uploads/{email}_login.jpg"
 
         # **Check if login is from Mobile or PC**
-        if image_path:  # Mobile Login (file upload)
-            image = face_recognition.load_image_file(image_path)
-            encoding = face_recognition.face_encodings(image)
+        # if image_path:  # Mobile Login (file upload)
+        image = face_recognition.load_image_file(image_path)
+        encoding = face_recognition.face_encodings(image)
 
-        else:  # PC Login (Webcam)
-            frame, error = show_countdown_with_face_detection(window_title="Face Login")
-            if error:
-                return {"error": error, "Status": "False"}
-
-            # # Resize Webcam Image
-            frame_resized  = cv2.resize(frame, (500, int((frame.shape[0] / frame.shape[1]) * 500)))  # Maintain aspect ratio
-
-            # Convert frame to encoding
-            rgb_frame = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
-            encoding = face_recognition.face_encodings(rgb_frame)
-
-            # Save captured image
-            # image_path = f"uploads/{email}_login.jpg"
-            # cv2.imwrite(image_path, frame_resized)
-            cv2.imwrite(temp_image_path, frame_resized)
-            image_path = temp_image_path
-
-            # **MAC and IP check only for PC login**
-            if mac_address != stored_mac:
-                return {"error": "Unauthorized device! MAC/IP mismatch. Request admin verification.","Status": "False"}
+        # else:  # PC Login (Webcam)
+        #     frame, error = show_countdown_with_face_detection(window_title="Face Login")
+        #     if error:
+        #         return {"error": error, "Status": "False"}
+        #
+        #     # # Resize Webcam Image
+        #     frame_resized  = cv2.resize(frame, (500, int((frame.shape[0] / frame.shape[1]) * 500)))  # Maintain aspect ratio
+        #
+        #     # Convert frame to encoding
+        #     rgb_frame = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
+        #     encoding = face_recognition.face_encodings(rgb_frame)
+        #
+        #     # Save captured image
+        #     # image_path = f"uploads/{email}_login.jpg"
+        #     # cv2.imwrite(image_path, frame_resized)
+        #     cv2.imwrite(temp_image_path, frame_resized)
+        #     image_path = temp_image_path
+        #
+        #     # **MAC and IP check only for PC login**
+        #     if mac_address != stored_mac:
+        #         return {"error": "Unauthorized device! MAC/IP mismatch. Request admin verification.","Status": "False"}
         if not encoding:
             return {"error": "No face detected for login","Status": "False"}
 
@@ -121,24 +121,24 @@ def login_user(email, image_path=None):
                 "Status": "True",
                 "data": [
                     {
-                        "_id": _id,
-                        "firstName": firstName,
-                        "lastName": lastName,
-                        "companyId": companyId,
-                        "companyName": companyName,
-                        "designation": designation,
+                        "_id": str(user.get("_id", "")),
+                        "firstName": user.get("firstName", ""),
+                        "lastName": user.get("lastName", ""),
+                        "companyId": user.get("companyId", ""),
+                        "companyName": user.get("companyName", ""),
+                        "designation": user.get("designation", ""),
                         "email": email,
-                        "phone": phone,
-                        "status": status,
-                        "role": role,
-                        "isNewUser": isNewUser,
-                        "token": token,
-                        "dailyTotalWorkingHour": dailyTotalWorkingHour,
-                        "weeklyTotalWorkingHour": weeklyTotalWorkingHour,
-                        "requiresPasswordReset": requiresPasswordReset,
-                        "empCode": empCode,
-                        "name": name,
-                        "mobile": mobile,
+                        "phone": user.get("phone", ""),
+                        "status": user.get("status", ""),
+                        "role": user.get("role", ""),
+                        "isNewUser": user.get("isNewUser", ""),
+                        "token": user.get("token", ""),
+                        "dailyTotalWorkingHour": user.get("dailyTotalWorkingHour", ""),
+                        "weeklyTotalWorkingHour": user.get("weeklyTotalWorkingHour", ""),
+                        "requiresPasswordReset": user.get("requiresPasswordReset", ""),
+                        "empCode": user.get("empCode", ""),
+                        "name": user.get("name", ""),
+                        "mobile": user.get("mobile", ""),
                         "device_mac": mac_address,
                         "image_url": new_cloudinary_url,
                     }

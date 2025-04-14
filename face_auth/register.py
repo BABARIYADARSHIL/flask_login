@@ -22,16 +22,16 @@ def register_user(name, email, mobile, image_path=None):
             return {"error": "User with this email already registered"}
 
         # **If no image provided, capture from webcam**
-        if not image_path:
-            frame, error = show_countdown_with_face_detection(window_title="Face Registration")
-            if error:
-                return {"error": error}
-            # **Resize webcam image before saving**
-            resized_frame = cv2.resize(frame,(500, int((frame.shape[0] / frame.shape[1]) * 500)))  # Maintain aspect ratio
-            temp_image_path = f"uploads/{name}_register.jpg"
-            # Save the captured image
-            cv2.imwrite(temp_image_path, resized_frame)
-            image_path = temp_image_path  # assign for processing
+        # if not image_path:
+        #     frame, error = show_countdown_with_face_detection(window_title="Face Registration")
+        #     if error:
+        #         return {"error": error}
+        #     # **Resize webcam image before saving**
+        #     resized_frame = cv2.resize(frame,(500, int((frame.shape[0] / frame.shape[1]) * 500)))  # Maintain aspect ratio
+        #     temp_image_path = f"uploads/{name}_register.jpg"
+        #     # Save the captured image
+        #     cv2.imwrite(temp_image_path, resized_frame)
+        #     image_path = temp_image_path  # assign for processing
 
         # **Resize Image Before Processing**
         resized_path = resize_image(image_path)
