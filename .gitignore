@@ -2,13 +2,3 @@ __pycache__/
 .env
 *.pyc
 .idea
-*.pyo
-*.pyd
-env/
-venv/
-.idea/
-*.jpg
-*.png
-uploads/
-dataset/
-temp/
