@@ -6,7 +6,6 @@ nixPkgs = [
   "pkg-config",
   "python3",
   "python3Full",
-  "python3-dev",
   "libffi",
   "zlib",
   "libjpeg",
