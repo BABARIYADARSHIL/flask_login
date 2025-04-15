@@ -1,7 +1,6 @@
 import time
 import cv2
 import os
-import face_recognition
 import numpy as np
 import requests
 from getmac import get_mac_address
@@ -138,62 +137,3 @@ def delete_cloudinary_image(image_url):
     except Exception as e:
         print(f"❌ Error deleting image from Cloudinary: {e}")
         return False
-
-
-# def show_countdown_with_face_detection(window_title="Hold still...", duration=3):
-#     cap = cv2.VideoCapture(0)
-#     if not cap.isOpened():
-#         return None, "Webcam not detected"
-#
-#     face_detected_time = None
-#     final_frame = None
-#
-#     while True:
-#         ret, frame = cap.read()
-#         if not ret:
-#             cap.release()
-#             return None, "Failed to capture image"
-#
-#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-#         face_locations = face_recognition.face_locations(rgb_frame)
-#
-#         if len(face_locations) == 0:
-#             face_detected_time = None
-#             cv2.putText(frame, "No face detected!", (50, 50),
-#                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-#         else:
-#             for (top, right, bottom, left) in face_locations:
-#                 padding = 30
-#                 cv2.rectangle(frame,
-#                               (left - padding, top - padding),
-#                               (right + padding, bottom + padding),
-#                               (0, 255, 0), 2)
-#
-#             if face_detected_time is None:
-#                 face_detected_time = time.time()
-#
-#             elapsed = time.time() - face_detected_time
-#             remaining = duration - int(elapsed)
-#
-#             if elapsed >= duration:
-#                 final_frame = frame
-#                 break
-#
-#             cv2.putText(frame, f"Hold still... {remaining}", (50, 450),
-#                         cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)
-#
-#         cv2.imshow(window_title, frame)
-#         if cv2.waitKey(1) & 0xFF == ord('q'):
-#             cap.release()
-#             cv2.destroyAllWindows()
-#             return None, "Operation cancelled by user"
-#
-#     cap.release()
-#     cv2.destroyAllWindows()
-#     return final_frame, None
-
-
-def detect_face_encoding(image):
-    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    encodings = face_recognition.face_encodings(rgb_image)
-    return encodings[0] if encodings else None
