@@ -16,5 +16,9 @@ nixPkgs = [
 [phases.install]
 cmds = [
   "pip install --upgrade pip",
+  "pip install wheel",
   "pip install -r requirements.txt"
 ]
+
+[variables]
+PYTHON_VERSION = "3.9"
