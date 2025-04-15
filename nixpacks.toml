@@ -4,8 +4,8 @@ nixPkgs = [
   "boost",
   "gcc",
   "pkg-config",
-  "python3",
-  "python3Full",
+  "python310",
+  "python310Full",
   "libffi",
   "zlib",
   "libjpeg",
@@ -20,4 +20,4 @@ cmds = [
 ]
 
 [variables]
-PYTHON_VERSION = "3.9"
+PYTHON_VERSION = "3.10"
