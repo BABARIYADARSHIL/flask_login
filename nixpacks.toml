@@ -1,6 +1,6 @@
 [phases.setup]
 nixPkgs = [
-  "python310",
+  "python310Full",  # includes pip
   "cmake",
   "gcc",
   "boost",
