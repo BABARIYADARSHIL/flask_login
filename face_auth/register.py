@@ -1,8 +1,7 @@
 import cv2
 import face_recognition
 import os
-from face_auth.utils import get_device_mac, resize_image, upload_to_cloudinary, users_collection, \
-    show_countdown_with_face_detection
+from face_auth.utils import get_device_mac, resize_image, upload_to_cloudinary, users_collection
 from dotenv import load_dotenv
 
 load_dotenv()
