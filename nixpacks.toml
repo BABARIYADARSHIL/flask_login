@@ -1,11 +1,10 @@
 [phases.setup]
 nixPkgs = [
-  "cmake",
-  "boost",
-  "gcc",
-  "pkg-config",
   "python310",
-  "python310Full",
+  "cmake",
+  "gcc",
+  "boost",
+  "pkg-config",
   "libffi",
   "zlib",
   "libjpeg",
@@ -18,6 +17,3 @@ cmds = [
   "pip install wheel",
   "pip install -r requirements.txt"
 ]
-
-[variables]
-PYTHON_VERSION = "3.10"
