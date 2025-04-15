@@ -1,7 +1,7 @@
 import cv2
 import os
 import face_recognition
-from face_auth.utils import get_device_mac, get_cloudinary_image, users_collection,upload_to_cloudinary, delete_cloudinary_image, show_countdown_with_face_detection
+from face_auth.utils import get_device_mac, get_cloudinary_image, users_collection,upload_to_cloudinary, delete_cloudinary_image
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -46,8 +46,8 @@ def login_user(email, image_path=None):
         encoding = face_recognition.face_encodings(image)
 
         #     # **MAC and IP check only for PC login**
-        if mac_address != stored_mac:
-            return {"error": "Unauthorized device! MAC/IP mismatch. Request admin verification.","Status": "False"}
+        # if mac_address != stored_mac:
+        #     return {"error": "Unauthorized device! MAC/IP mismatch. Request admin verification.","Status": "False"}
         if not encoding:
             return {"error": "No face detected for login","Status": "False"}
 
@@ -105,11 +105,6 @@ def login_user(email, image_path=None):
 
         else:
             return {"error": "Login failed. Face does not match.", "Status": "False"}
-
-    except face_recognition.api.UnknownFaceException as e:
-        # Handle specific exceptions related to face recognition
-        print(f"Face recognition error: {e}")
-        return {"status": "error", "message": "Face recognition error", "code": 502}
 
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
