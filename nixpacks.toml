@@ -1,5 +1,15 @@
 [phases.setup]
-nixPkgs = ["cmake", "gcc", "boost", "pkg-config", "libffi", "zlib", "libjpeg", "libpng"]
+nixPkgs = [
+  "python310Full",   # Includes python3 and pip
+  "cmake",
+  "gcc",
+  "boost",
+  "pkg-config",
+  "libffi",
+  "zlib",
+  "libjpeg",
+  "libpng"
+]
 
 [phases.install]
 cmds = [
@@ -8,5 +18,6 @@ cmds = [
   "python3 -m pip install -r requirements.txt"
 ]
 
-[variables]
-PYTHON_VERSION = "3.10"
+[phases.build]
+nixpkgsArchive = "https://github.com/NixOS/nixpkgs/archive/nixpkgs-23.11-darwin.tar.gz"
+cmds = []
