@@ -3,7 +3,7 @@ flask_cors
 python-dotenv
 gunicorn
 opencv-python-headless
-face_recognition
+deepface
 numpy
 requests
 getmac

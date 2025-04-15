@@ -2,10 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 from face_auth import register_user, login_user  # Import from the module
-import cv2
-import time
 from face_auth.utils import upload_to_cloudinary,users_collection
-import face_recognition
 from dotenv import load_dotenv
 
 app = Flask(__name__)
@@ -80,90 +77,90 @@ def login():
         return jsonify({"error": str(e)}), 500
 
 
-# 🚀 New API: Handle webcam capture or manual upload
-@app.route('/capture_upload_image', methods=['POST'])
-def capture_upload_image():
-    try:
-        email = request.form.get("email")
-        print(email)
-        if not email:
-            return jsonify({"error": "Email is required"}), 400
-
-        # Check if user uploaded an image (for mobile users)
-        if "image" in request.files:
-            file = request.files["image"]
-            filename = os.path.join(app.config["UPLOAD_FOLDER"], f"{email}_upload.jpg")
-            file.save(filename)
-            cloudinary_url = upload_to_cloudinary(filename, folder=CLOUDINARY_FOLDER)
-            os.remove(filename)
-        else:
-            # **Webcam Capture Logic**
-            cap = cv2.VideoCapture(0)
-            if not cap.isOpened():
-                return {"error": "Webcam not detected. Please upload an image manually."}
-            face_detected_time = None
-
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    return {"error": "Failed to capture image"}
-
-                # Convert frame to RGB
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-                # Detect Face
-                face_locations = face_recognition.face_locations(rgb_frame)
-
-                if len(face_locations) == 0:
-                    face_detected_time = None  # Reset if face not found
-                    cv2.putText(frame, "No face detected!", (50, 50),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                else:
-                    for (top, right, bottom, left) in face_locations:
-                        padding = 30
-                        cv2.rectangle(frame,
-                                      (left - padding, top - padding),
-                                      (right + padding, bottom + padding),
-                                      (0, 255, 0), 2)
-                    if face_detected_time is None:
-                        face_detected_time = time.time()
-
-                    # Calculate how long face has been detected
-                    elapsed = time.time() - face_detected_time
-                    remaining = 3 - int(elapsed)
-
-                    if elapsed >= 3:
-                        break  # Capture image
-
-                    # Show countdown on frame
-                    cv2.putText(frame, f"Hold still... {remaining}", (50, 450),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)
-
-                cv2.imshow("Face Capture - Hold still for 3 seconds", frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    cap.release()
-                    cv2.destroyAllWindows()
-                    return {"error": "Face Capture cancelled by user"}
-
-            cap.release()
-            cv2.destroyAllWindows()
-
-            # Save & Upload Image to Cloudinary
-            filename = os.path.join(app.config["UPLOAD_FOLDER"], f"{email}_capture.jpg")
-            cv2.imwrite(filename, frame)
-            cloudinary_url = upload_to_cloudinary(filename, folder=CLOUDINARY_FOLDER)
-            os.remove(filename)
-
-        if not cloudinary_url:
-            return jsonify({"error": "Image upload failed"}), 500
-
-        # Update user profile with new image URL
-        users_collection.update_one({"email": email}, {"$set": {"image_url": cloudinary_url}})
-
-        return jsonify({ "success": True,"message": "Image captured & uploaded successfully", "image_url": cloudinary_url})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+# # 🚀 New API: Handle webcam capture or manual upload
+# @app.route('/capture_upload_image', methods=['POST'])
+# def capture_upload_image():
+#     try:
+#         email = request.form.get("email")
+#         print(email)
+#         if not email:
+#             return jsonify({"error": "Email is required"}), 400
+#
+#         # Check if user uploaded an image (for mobile users)
+#         if "image" in request.files:
+#             file = request.files["image"]
+#             filename = os.path.join(app.config["UPLOAD_FOLDER"], f"{email}_upload.jpg")
+#             file.save(filename)
+#             cloudinary_url = upload_to_cloudinary(filename, folder=CLOUDINARY_FOLDER)
+#             os.remove(filename)
+#         else:
+#             # **Webcam Capture Logic**
+#             cap = cv2.VideoCapture(0)
+#             if not cap.isOpened():
+#                 return {"error": "Webcam not detected. Please upload an image manually."}
+#             face_detected_time = None
+#
+#             while True:
+#                 ret, frame = cap.read()
+#                 if not ret:
+#                     return {"error": "Failed to capture image"}
+#
+#                 # Convert frame to RGB
+#                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+#
+#                 # Detect Face
+#                 face_locations = face_recognition.face_locations(rgb_frame)
+#
+#                 if len(face_locations) == 0:
+#                     face_detected_time = None  # Reset if face not found
+#                     cv2.putText(frame, "No face detected!", (50, 50),
+#                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+#                 else:
+#                     for (top, right, bottom, left) in face_locations:
+#                         padding = 30
+#                         cv2.rectangle(frame,
+#                                       (left - padding, top - padding),
+#                                       (right + padding, bottom + padding),
+#                                       (0, 255, 0), 2)
+#                     if face_detected_time is None:
+#                         face_detected_time = time.time()
+#
+#                     # Calculate how long face has been detected
+#                     elapsed = time.time() - face_detected_time
+#                     remaining = 3 - int(elapsed)
+#
+#                     if elapsed >= 3:
+#                         break  # Capture image
+#
+#                     # Show countdown on frame
+#                     cv2.putText(frame, f"Hold still... {remaining}", (50, 450),
+#                                 cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)
+#
+#                 cv2.imshow("Face Capture - Hold still for 3 seconds", frame)
+#                 if cv2.waitKey(1) & 0xFF == ord('q'):
+#                     cap.release()
+#                     cv2.destroyAllWindows()
+#                     return {"error": "Face Capture cancelled by user"}
+#
+#             cap.release()
+#             cv2.destroyAllWindows()
+#
+#             # Save & Upload Image to Cloudinary
+#             filename = os.path.join(app.config["UPLOAD_FOLDER"], f"{email}_capture.jpg")
+#             cv2.imwrite(filename, frame)
+#             cloudinary_url = upload_to_cloudinary(filename, folder=CLOUDINARY_FOLDER)
+#             os.remove(filename)
+#
+#         if not cloudinary_url:
+#             return jsonify({"error": "Image upload failed"}), 500
+#
+#         # Update user profile with new image URL
+#         users_collection.update_one({"email": email}, {"$set": {"image_url": cloudinary_url}})
+#
+#         return jsonify({ "success": True,"message": "Image captured & uploaded successfully", "image_url": cloudinary_url})
+#
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Get PORT from environment
