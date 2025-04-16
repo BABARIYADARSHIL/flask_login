@@ -13,10 +13,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Suppress TensorFlow CUDA warnings
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress TensorFlow logs
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"  # Disable oneDNN optimizations
-
+# Suppress TensorFlow warnings (handled in Dockerfile)
 load_dotenv()
 CLOUDINARY_FOLDER = os.getenv("CLOUDINARY_FOLDER", "face_recognition")
 
@@ -25,7 +22,7 @@ register_attempts = {}
 
 def rate_limit(f):
     """
-    Rate limit registration attempts to prevent abuse (5 attempts per minute per IP).
+    Rate limit registration attempts (5 attempts per minute per IP).
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -46,10 +43,9 @@ def rate_limit(f):
 @rate_limit
 def register_user(name, email, mobile, image_path=None):
     """
-    Register a new user with facial recognition and store their image in Cloudinary.
-    Only registers if a face is detected in the image using DeepFace.detectFace.
+    Register a new user with facial recognition, using OpenCV backend for face detection.
     """
-    temp_files = []  # Track temporary files for cleanup
+    temp_files = []
     try:
         # Sanitize inputs
         if not all([name, email, mobile]) or not all(isinstance(x, str) for x in [name, email, mobile]):
@@ -66,13 +62,13 @@ def register_user(name, email, mobile, image_path=None):
             return {"error": "User with this email already registered", "Status": "False"}
 
         # Resize image
-        resized_path = resize_image(image_path, width=128)  # Reduced to 128 for performance
+        resized_path = resize_image(image_path, width=128)
         if not resized_path or not os.path.exists(resized_path):
             logger.error(f"Failed to resize image: {image_path}")
             return {"error": "Invalid image file", "Status": "False"}
         temp_files.append(resized_path)
 
-        # Use DeepFace to detect face explicitly
+        # Detect face using OpenCV backend
         try:
             img = cv2.imread(resized_path)
             if img is None:
@@ -80,8 +76,8 @@ def register_user(name, email, mobile, image_path=None):
                 return {"error": "Invalid image file", "Status": "False"}
             detected_face = DeepFace.detectFace(
                 img_path=img,
-                detector_backend='ssd',
-                enforce_detection=True  # Strict face detection
+                detector_backend='opencv',  # Changed to avoid retinaface
+                enforce_detection=True
             )
             if detected_face is None:
                 logger.info(f"No face detected in image: {resized_path}")
@@ -142,7 +138,7 @@ def register_user(name, email, mobile, image_path=None):
             return {"status": "error", "message": "Application failed to respond", "code": 502}
 
     finally:
-        # Clean up all temporary files
+        # Clean up temporary files
         for path in temp_files:
             if path and os.path.exists(path):
                 try:

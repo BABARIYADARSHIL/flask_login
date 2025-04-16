@@ -10,4 +10,3 @@ getmac==0.9.4
 pymongo==4.8.0
 cloudinary==1.41.0
 blinker==1.7.0
-tf_keras==2.15.0
