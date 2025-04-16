@@ -7,6 +7,8 @@ venv/
 .idea/
 *.jpg
 *.png
-uploads/
+Uploads/
 dataset/
 temp/
+.env
+*.log
