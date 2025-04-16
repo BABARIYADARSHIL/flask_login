@@ -10,3 +10,4 @@ getmac
 pymongo
 cloudinary
 tf-keras
+tensorflow==2.18.0

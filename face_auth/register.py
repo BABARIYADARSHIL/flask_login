@@ -21,9 +21,12 @@ def register_user(name, email, mobile, image_path=None):
 
         # Use DeepFace to detect face by trying to analyze the image
         try:
-            # This will raise an exception if no face is detected
-            analysis = DeepFace.analyze(img_path=resized_path, actions=[], enforce_detection=True)
+            analysis = DeepFace.analyze(img_path=resized_path, actions=["age", "gender", "emotion", "race"])
+            if isinstance(analysis, list):
+                analysis = analysis[0]
+            print("Face analysis result:", analysis)
         except Exception as e:
+            print(f"Face detection failed: {e}")
             return {"error": "No face detected in the image"}
 
         # Upload to Cloudinary
