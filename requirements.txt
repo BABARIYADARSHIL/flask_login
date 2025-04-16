@@ -9,4 +9,3 @@ requests  # Match base image
 getmac
 pymongo
 cloudinary
-blinker # Explicitly specify newer version
