@@ -1,7 +1,7 @@
-# Use a CPU-only TensorFlow base image to avoid CUDA dependencies
+# Use a CPU-only TensorFlow base image
 FROM tensorflow/tensorflow:2.15.0
 
-# Install required system libraries (libgl1 for OpenCV, others for compatibility)
+# Install required system libraries
 RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \
@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Upgrade pip to the latest version
+RUN pip install --no-cache-dir --upgrade pip
+
 # Set working directory
 WORKDIR /app
 
@@ -23,12 +26,14 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-download DeepFace model to avoid runtime download
-RUN python -c "from deepface import DeepFace; DeepFace.detectFace('dummy.jpg', detector_backend='ssd', model_name='Facenet512', enforce_detection=False)" || true
+RUN mkdir -p /root/.deepface/weights && \
+    wget -O /root/.deepface/weights/facenet512_weights.h5 \
+    https://github.com/serengil/deepface_models/releases/download/v1.0/facenet512_weights.h5
 
 # Copy codebase
 COPY . .
 
-# Set environment variables to suppress TensorFlow warnings and optimize memory
+# Set environment variables for TensorFlow
 ENV TF_CPP_MIN_LOG_LEVEL=3
 ENV TF_ENABLE_ONEDNN_OPTS=0
 
