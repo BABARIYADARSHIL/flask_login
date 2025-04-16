@@ -21,8 +21,8 @@ RUN pip install --no-cache-dir --upgrade pip
 # Set working directory
 WORKDIR /app
 
-# Install tensorflow-cpu first to avoid conflicts
-RUN pip install --no-cache-dir tensorflow-cpu==2.15.0
+# Install tensorflow-cpu and tf_keras first to avoid conflicts
+RUN pip install --no-cache-dir tensorflow-cpu==2.15.0 tf_keras==2.15.0
 
 # Copy and install dependencies
 COPY requirements.txt .
