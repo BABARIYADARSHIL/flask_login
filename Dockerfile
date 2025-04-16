@@ -1,5 +1,5 @@
-# Use a CPU-only TensorFlow base image
-FROM tensorflow/tensorflow:2.15.0
+# Use a clean Python base image
+FROM python:3.11-slim
 
 # Install required system libraries
 RUN apt-get update && apt-get install -y \
@@ -18,12 +18,11 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip to the latest version
 RUN pip install --no-cache-dir --upgrade pip
 
-# Forcefully remove distutils-installed blinker
-RUN python -m pip uninstall -y blinker || true
-RUN rm -rf /usr/local/lib/python3.11/dist-packages/blinker* || true
-
 # Set working directory
 WORKDIR /app
+
+# Install tensorflow-cpu first to avoid conflicts
+RUN pip install --no-cache-dir tensorflow-cpu==2.15.0
 
 # Copy and install dependencies
 COPY requirements.txt .
