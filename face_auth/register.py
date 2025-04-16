@@ -2,6 +2,7 @@ import os
 from face_auth.utils import get_device_mac, resize_image, upload_to_cloudinary, users_collection
 from dotenv import load_dotenv
 from deepface import DeepFace
+import gc
 
 load_dotenv()
 CLOUDINARY_FOLDER = os.getenv("CLOUDINARY_FOLDER", "face_recognition")
@@ -15,13 +16,13 @@ def register_user(name, email, mobile, image_path=None):
                 os.remove(image_path)
             return {"error": "User with this email already registered"}
 
-        resized_path = resize_image(image_path)
+        resized_path = resize_image(image_path, width=256)
         if resized_path is None:
             return {"error": "Invalid image file"}
 
         # Use DeepFace to detect face by trying to analyze the image
         try:
-            analysis = DeepFace.analyze(img_path=resized_path, actions=["age", "gender", "emotion", "race"])
+            analysis = DeepFace.analyze(img_path=resized_path, actions=["age", "gender", "emotion", "race"], detector_backend="opencv")
             if isinstance(analysis, list):
                 analysis = analysis[0]
             print("Face analysis result:", analysis)
@@ -43,6 +44,8 @@ def register_user(name, email, mobile, image_path=None):
             "mac_address": mac_address,
             "image_url": cloudinary_url
         })
+        # Force garbage collection to release memory
+        gc.collect()
 
         return {
             "message": "User registered successfully",

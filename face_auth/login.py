@@ -1,6 +1,7 @@
 import cv2
 import os
-from face_auth.utils import get_device_mac, get_cloudinary_image, users_collection,upload_to_cloudinary, delete_cloudinary_image
+from face_auth.utils import get_device_mac, get_cloudinary_image, users_collection, upload_to_cloudinary, \
+    delete_cloudinary_image, resize_image
 from dotenv import load_dotenv
 from deepface import DeepFace
 
@@ -33,11 +34,12 @@ def login_user(email, image_path=None):
         temp_cloudinary_path = "temp_cloudinary.jpg"
         cv2.imwrite(temp_cloudinary_path, cloudinary_image)
 
-        if not image_path or not os.path.exists(image_path):
+        resized_path = resize_image(image_path, width=256)
+        if not resized_path or not os.path.exists(resized_path):
             return {"error": "Login image not found", "Status": "False"}
 
         # Use DeepFace to verify if faces match
-        verification_result = DeepFace.verify(img1_path=image_path, img2_path=temp_cloudinary_path)
+        verification_result = DeepFace.verify(img1_path=resized_path, img2_path=temp_cloudinary_path, detector_backend='opencv',enforce_detection=True)
 
         # Clean up temp file
         if os.path.exists(temp_cloudinary_path):
@@ -50,7 +52,7 @@ def login_user(email, image_path=None):
                 if not delete_success:
                     return {"error": "Failed to delete old image. Try again.", "Status": "False"}
 
-            new_cloudinary_url = upload_to_cloudinary(image_path, folder=CLOUDINARY_FOLDER)
+            new_cloudinary_url = upload_to_cloudinary(resized_path, folder=CLOUDINARY_FOLDER)
             if not new_cloudinary_url:
                 return {"error": "Failed to upload new login image.", "Status": "False"}
 
