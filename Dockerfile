@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip to the latest version
 RUN pip install --no-cache-dir --upgrade pip
 
+# Forcefully remove distutils-installed blinker
+RUN python -m pip uninstall -y blinker || true
+RUN rm -rf /usr/local/lib/python3.11/dist-packages/blinker* || true
 
 # Set working directory
 WORKDIR /app
