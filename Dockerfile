@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip to the latest version
 RUN pip install --no-cache-dir --upgrade pip
 
+# Uninstall distutils-installed blinker to avoid conflicts
+RUN pip uninstall -y blinker || true
+
 # Set working directory
 WORKDIR /app
 
