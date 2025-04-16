@@ -9,3 +9,4 @@ requests
 getmac
 pymongo
 cloudinary
+tf-keras
