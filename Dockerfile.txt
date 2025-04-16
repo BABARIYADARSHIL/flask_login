@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     libswscale-dev \
     libv4l-dev \
     libx264-dev \
+    libgl1 \
     pkg-config \
     wget \
     git \
