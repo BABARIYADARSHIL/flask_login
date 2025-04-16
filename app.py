@@ -1,7 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
-from face_auth import register_user, login_user  # Import from the module
+from face_auth.register import register_user  # Import from the module
+from face_auth.login import  login_user  # Import from the module
 from face_auth.utils import upload_to_cloudinary,users_collection
 from dotenv import load_dotenv
 
