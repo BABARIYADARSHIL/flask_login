@@ -39,7 +39,8 @@ COPY . .
 # Set environment variables for TensorFlow
 ENV TF_CPP_MIN_LOG_LEVEL=3
 ENV TF_ENABLE_ONEDNN_OPTS=0
-ENV CUDA_VISIBLE_DEVICES=""  # Disable GPU completely
+# Disable GPU completely
+ENV CUDA_VISIBLE_DEVICES=""
 
 # Start the app with Gunicorn (single worker, multiple threads)
 CMD ["gunicorn", "--workers=1", "--threads=4", "--timeout=120", "--bind=0.0.0.0:8000", "app:app"]
