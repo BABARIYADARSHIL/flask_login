@@ -1,6 +1,7 @@
 import time
 import cv2
 import os
+import face_recognition
 import numpy as np
 import requests
 from getmac import get_mac_address
@@ -8,9 +9,17 @@ import cloudinary.uploader
 from face_auth.cloudinary_config import cloudinary  # Import Cloudinary configuration
 from face_auth.db import db_connection
 from dotenv import load_dotenv
+from cloudinary.uploader import destroy
+import jwt
+from datetime import datetime, timedelta
+import threading
+import logging
 
 load_dotenv()
 CLOUDINARY_FOLDER = os.getenv("CLOUDINARY_FOLDER", "face_recognition")
+
+# Configure logging
+logging.basicConfig(filename="face_auth.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Fetch DB name from environment variable
 db_name = os.getenv("MONGO_DB_NAME", "face_auth_db")  # Default to 'face_auth_db' if not set
@@ -28,112 +37,166 @@ def get_device_mac():
     return mac if mac else "Unknown"
 
 # Function to Resize Image (Maintaining Aspect Ratio)
-def resize_image(image_path, width=500):
-    image = cv2.imread(image_path)
-    if image is None:
-        return None  # Invalid image file
+def resize_image(image_path, max_width=500):
+    try:
+        image = cv2.imread(image_path)
+        if image is None:
+            logging.error(f"Failed to read image: {image_path}")
+            return None
 
-    height = int((image.shape[0] / image.shape[1]) * width)  # Maintain aspect ratio
-    resized_image = cv2.resize(image, (width, height))  # Resize image
-
-    cv2.imwrite(image_path, resized_image)  # Overwrite original image with resized image
-    return image_path
+        height, width = image.shape[:2]
+        if width > max_width:
+            ratio = max_width / width
+            new_height = int(height * ratio)
+            image = cv2.resize(image, (max_width, new_height), interpolation=cv2.INTER_AREA)
+            cv2.imwrite(image_path, image, [int(cv2.IMWRITE_JPEG_QUALITY), 85])  # Compress with 85% quality
+        return image_path
+    except Exception as e:
+        logging.error(f"Error resizing image {image_path}: {e}")
+        return None
 
 # Function to upload image to Cloudinary
 def upload_to_cloudinary(image_path, folder=CLOUDINARY_FOLDER):
     try:
-        print(f"Uploading image: {image_path}")
-
+        logging.info(f"Uploading image: {image_path}")
         if not os.path.exists(image_path):
-            print(f"Error: Image file {image_path} does not exist!")
+            logging.error(f"Image file {image_path} does not exist")
             return None
 
-        timestamp = int(time.time())  # Get the correct UNIX timestamp
+        # Resize image before upload
+        resized_path = resize_image(image_path)
+        if not resized_path:
+            return None
 
         response = cloudinary.uploader.upload(
-            image_path,
+            resized_path,
             folder=folder,
-            timestamp=timestamp
+            timestamp=int(time.time()),
+            quality="auto:low"  # Optimize upload size
         )
-
-        # print("Cloudinary Response:", response)
         return response.get("secure_url")
     except Exception as e:
-        print(f"Cloudinary upload error: {e}")
+        logging.error(f"Cloudinary upload error: {e}")
         return None
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        return None
-
-
-# Function to get Cloudinary Image as OpenCV format
 
 def get_cloudinary_image(url):
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=5)  # Reduced timeout
         if response.status_code != 200:
+            logging.error(f"Failed to fetch Cloudinary image: {url}, status: {response.status_code}")
             return None
-        # Convert to NumPy array and load into OpenCV
         img_array = np.frombuffer(response.content, np.uint8)
         image = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-        return image if image is not None else None
+        if image is None:
+            logging.error(f"Failed to decode Cloudinary image: {url}")
+        return image
     except requests.RequestException as e:
-        print(f"Cloudinary image fetch error: {e}")
+        logging.error(f"Cloudinary image fetch error: {e}")
         return None
 
 def upload_to_cloudinary_use_login(image, folder=CLOUDINARY_FOLDER):
     try:
-        # If the image is a numpy array (e.g., from webcam), save it as a temporary file
-        if isinstance(image, np.ndarray):  # Check if the input is a numpy array (image frame)
-            # Create a temporary file to save the image (using time-based naming)
-            timestamp = int(time.time())  # Generate a unique timestamp for file naming
+        if isinstance(image, np.ndarray):
+            timestamp = int(time.time())
             temp_file_path = f"temp_image_{timestamp}.jpg"
-            cv2.imwrite(temp_file_path, image)  # Save the numpy array to a .jpg file
-            image_path = temp_file_path  # Update image_path to point to the temporary file
+            cv2.imwrite(temp_file_path, image, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
+            image_path = temp_file_path
         else:
-            # If the image is already a file path (for mobile upload), use it directly
             image_path = image
 
-        print(f"Uploading image: {image_path}")
-
+        logging.info(f"Uploading image: {image_path}")
         if not os.path.exists(image_path):
-            print(f"Error: Image file {image_path} does not exist!")
+            logging.error(f"Image file {image_path} does not exist")
             return None
 
-        # Upload the image file to Cloudinary
         response = cloudinary.uploader.upload(
             image_path,
             folder=folder,
-            timestamp=int(time.time())
+            timestamp=int(time.time()),
+            quality="auto:low"
         )
 
-        # Clean up by removing the temporary image file if it was created
         if isinstance(image, np.ndarray):
             os.remove(image_path)
-
         return response.get("secure_url")
     except Exception as e:
-        print(f"Cloudinary upload error: {e}")
+        logging.error(f"Cloudinary upload error: {e}")
         return None
 
+def delete_cloudinary_image(imageUrl, retries=2, delay=1):
+    def async_delete(public_id):
+        try:
+            response = destroy(public_id)
+            if response.get("result") in ["ok", "not found"]:
+                logging.info(f"Image deleted or not found: {public_id}")
+            else:
+                logging.error(f"Failed to delete image: {public_id}, Response: {response}")
+        except Exception as e:
+            logging.error(f"Error deleting image {public_id}: {e}")
 
-def delete_cloudinary_image(image_url):
     try:
-        # Extract public_id correctly (remove version and file extension)
-        parts = image_url.split("/")
-        public_id = "/".join(parts[-2:]).split(".")[0]  # Keep folder + filename
+        parts = imageUrl.split("/")
+        upload_index = parts.index("upload") + 1
+        if parts[upload_index].startswith("v"):
+            upload_index += 1
+        public_id = "/".join(parts[upload_index:]).split(".")[0]
+        logging.info(f"Queueing deletion of Cloudinary image: {public_id}")
 
-        print(f"Deleting Cloudinary Image: {public_id}")  # Debugging
+        # Run deletion in a background thread
+        threading.Thread(target=async_delete, args=(public_id,), daemon=True).start()
+        return True
+    except Exception as e:
+        logging.error(f"Error queueing deletion: {e}")
+        return False
 
-        response = cloudinary.uploader.destroy(public_id)
+def detect_face_encoding(image):
+    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # Use HOG model for faster face detection
+    encodings = face_recognition.face_encodings(rgb_image, model="hog")
+    return encodings[0] if encodings else None
 
-        if response.get("result") == "ok":
-            print("✅ Old image deleted successfully.")
-            return True
-        else:
-            print("❌ Failed to delete old image. Response:", response)
-            return False
+
+def generate_token(user):
+    """
+    Generate a JWT token for the user.
+
+    Args:
+        user (dict): User data to include in the token payload.
+
+    Returns:
+        str: JWT token.
+    """
+    try:
+        # Prepare the payload (similar to user.toJSON())
+        payload = {
+            "_id": str(user.get("_id", "")),
+            "firstName": user.get("firstName", ""),
+            "lastName": user.get("lastName", ""),
+            "companyId": str(user.get("companyId", "")),
+            "designation": user.get("designation", ""),
+            "email": user.get("email", ""),
+            "phone": user.get("phone", ""),
+            "status": user.get("status", ""),
+            "role": user.get("role", ""),
+            "isNewUser": user.get("isNewUser", False),
+            "empCode": user.get("empCode", ""),
+            "password": user.get("password", ""),
+            "createdAt": user.get("createdAt", datetime.utcnow()).isoformat() if user.get("createdAt") else "",
+            "updatedAt": user.get("updatedAt", datetime.utcnow()).isoformat() if user.get("updatedAt") else "",
+            "__v": user.get("__v", 0),
+            # Add expiration (e.g., 1 hour from now)
+            "iat": int(datetime.utcnow().timestamp())
+        }
+
+        # Get the JWT secret from environment
+        secret = os.getenv("JWT_SECRET")
+        if not secret:
+            raise ValueError("JWT_SECRET not found in environment variables")
+
+        # Generate the token with HS256
+        token = jwt.encode(payload, secret, algorithm="HS256")
+        return token
 
     except Exception as e:
-        print(f"❌ Error deleting image from Cloudinary: {e}")
-        return False
+        print(f"Error generating JWT token: {str(e)}")
+        return None
