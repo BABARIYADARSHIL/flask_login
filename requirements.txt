@@ -1,5 +1,6 @@
 Flask
 PyJWT
+psutil
 opencv-python
 face_recognition_models
 flask_cors
